@@ -1,0 +1,501 @@
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device.width">
+    <title>AISIS Scheduler</title>
+    <style type="text/css">
+        .wrapper {
+            max-height: 100%;
+            display: grid;
+            grid-gap: 10px;
+            margin: 0 auto;
+            grid-template-columns: repeat(1, minmax(150px, 1fr));
+            grid-auto-rows: minmax(15vh, auto);
+        }
+
+        body {
+            background-color: #a8bef7;
+        }
+
+        .wrapper .table-wrapper {
+            position: relative;
+
+        }
+
+        .wrapper .table-scroll {
+            height: 30vh;
+            overflow: auto;
+            margin-top: 20px;
+            background-color: #fffdf2;
+        }
+
+        .wrapper .table-wrapper table {
+            width: 100%;
+        }
+
+        .wrapper .table-wrapper table * {
+            color: black;
+        }
+
+
+        .wrapper .table-wrapper table tbody .sel {
+            background-color: #fff82d !important;
+        }
+
+        .wrapper .table-wrapper table tbody td {
+            margin-left: 10px;
+            overflow: hidden;
+            min-width: 10px;
+            min-height: 10px;
+            max-height: 10px;
+            max-width: 10px;
+        }
+
+        .wrapper .table-wrapper table tbody tr:nth-child(even) {
+            background-color: lightgray;
+        }
+
+        .wrapper .table-wrapper table thead th .text {
+            position: absolute;
+            display: flex;
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+            top: -20px;
+            height: 10px;
+        }
+
+        .wrapper .table-wrapper table thead {
+            text-align: center;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .wrapper .button-group {
+            display: grid;
+            grid-auto-flow: column;
+            padding: 40px;
+        }
+
+        .wrapper .button-group button {
+
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .wrapper .table-wrapper table tbody tr:hover {
+            background-color: #ffc1c1;
+        }
+
+
+        header {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding-top: -10px;
+            padding-left: 40px;
+            padding-right: 40px;
+            padding-bottom: 40px;
+            grid-column: 1/-1;
+        }
+
+        footer {
+            grid-column: 1/-1;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <header>
+            <table>
+                <tr>
+                    <td>Department</td>
+                    <td><select id="dept_select"></select></td>
+                </tr>
+                <tr>
+                    <td>Course</td>
+                    <td><select id="course_select"></select></td>
+                </tr>
+                <tr>
+                    <td colspan="2" align="center"><button id="course_button">Select</button></td>
+                </tr>
+            </table>
+        </header>
+        <div class="table-wrapper">
+            <div class="table-scroll">
+                <table>
+                    <thead>
+                        <tr>
+                            <th><span class="text">Course</span></th>
+                            <th><span class="text">Section</span></th>
+                            <th><span class="text">Course Title</span></th>
+                            <th><span class="text">Time</span></th>
+                            <th><span class="text">Room</span></th>
+                            <th><span class="text">Instructor</span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="output_body">
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="button-group"><button id="add">Add Class</button><button id="remove"> Remove Class</button></div>
+        <footer>
+            <div class="table-wrapper">
+                <div class="table-scroll">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th><span class="text">Course</span></th>
+                                <th><span class="text">Section</span></th>
+                                <th><span class="text">Course Title</span></th>
+                                <th><span class="text">Time</span></th>
+                                <th><span class="text">Room</span></th>
+                                <th><span class="text">Instructor</span></th>
+                            </tr>
+                        </thead>
+                        <tbody id="sched_body">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </footer>
+    </div>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script type="text/javascript">
+        var id = 2
+        update_sched_body()
+        $.get('/api/dept', function(data) {
+
+
+            var option = document.createElement("option")
+            option.innerHTML = "Select Department"
+            document.querySelector("#dept_select").appendChild(option)
+            for (i = 0; i < data.length; i++) {
+                var option = document.createElement("option")
+                option.innerHTML = data[i]["name"]
+                document.querySelector("#dept_select").appendChild(option)
+            }
+
+
+        })
+
+        $(function() {
+            $("#dept_select").on("change", function() {
+
+                try {
+                    var myNode = document.querySelector("#course_select");
+                    while (myNode.firstChild) {
+                        myNode.removeChild(myNode.firstChild);
+                    }
+                } catch (error) {
+                    console.log(error)
+                }
+
+                var m = document.querySelector("#dept_select")
+                if (m.firstChild.text == "Select Department") {
+                    m.removeChild(m.firstChild);
+                }
+
+                var e = document.querySelector("#dept_select")
+                var dept = e.options[e.selectedIndex].text
+
+                var option = document.createElement("option")
+                option.innerHTML = "All"
+                document.querySelector("#course_select").appendChild(option)
+                $.get('/api/course', {
+                    'dept': dept
+                }, function(data) {
+                    for (i = 0; i < data.length; i++) {
+                        var option = document.createElement("option")
+                        option.innerHTML = data[i]["code"] + ": " + data[i]["name"]
+                        document.querySelector("#course_select").appendChild(option)
+                    }
+                })
+                $('#dept_select').blur();
+            });
+        });
+
+        document.querySelector("#course_button").addEventListener('click', function(evt) {
+            var e = document.querySelector("#course_select")
+            var course = e.options[e.selectedIndex].text.split(" ")[0].replace(":", "")
+            var coursename = e.options[e.selectedIndex].text.replace(course + ": ", "")
+            try {
+                var myNode = document.querySelector("#output_body");
+                while (myNode.firstChild) {
+                    myNode.removeChild(myNode.firstChild);
+                }
+            } catch (error) {
+                console.log(error)
+            }
+            update_output_body(course,coursename)
+        });
+
+        function update_output_body(course,coursename) {
+            if (course != "All") {
+                $.get("/api/seclist/" + id + "/?code=" + course, function(data) {
+                    for (i = 0; i < data.length; i++) {
+                        var tr = document.createElement("tr")
+
+                        tr.addEventListener('click', function(evt) {
+
+                            try {
+                                document.querySelector(".sel").classList.remove("sel")
+                            } catch (error) {
+
+                            }
+
+                            evt.target.parentElement.classList.add("sel")
+                            if (evt.target.parentElement.parentElement.id == "output_body") {
+                                document.querySelector("#remove").setAttribute("disabled", "")
+                                document.querySelector("#add").removeAttribute("disabled")
+                            } else {
+                                document.querySelector("#add").setAttribute("disabled", "")
+                                document.querySelector("#remove").removeAttribute("disabled")
+                            }
+                        })
+
+                        console.log(data)
+                        var td = document.createElement("td")
+                        td.innerHTML = course
+                        tr.appendChild(td)
+                        td = document.createElement("td")
+                        td.innerHTML = data[i]["sec"]
+                        tr.appendChild(td)
+                        td = document.createElement("td")
+                        td.innerHTML = coursename
+                        tr.appendChild(td)
+                        td = document.createElement("td")
+                        td.innerHTML = data[i]["date"] + " " + data[i]["timeslot"]
+                        tr.appendChild(td)
+                        td = document.createElement("td")
+                        td.innerHTML = data[i]["venue"]
+                        tr.appendChild(td)
+                        td = document.createElement("td")
+                        td.innerHTML = data[i]["teacher"]
+                        tr.appendChild(td)
+
+
+
+                        document.querySelector("#output_body").appendChild(tr)
+                    }
+                })
+            } else {
+                var e = document.querySelector("#dept_select")
+                var dept = e.options[e.selectedIndex].text
+                $.get("/api/seclist/" + id + "/?dept=" + dept, function(data) {
+                    for (i = 0; i < data.length; i++) {
+
+                        do_all(i, data)
+                    }
+                })
+            }
+
+        }
+
+        function do_all(i, data) {
+            $.get("/api/course/" + data[i]['course'] + "/", function(data2) {
+                var tr = document.createElement("tr")
+                tr.addEventListener('click', function(evt) {
+                    try {
+                        document.querySelector(".sel").classList.remove("sel")
+                    } catch (error) {
+                        console.log(error)
+                    }
+                    evt.target.parentElement.classList.add("sel")
+                    if (evt.target.parentElement.parentElement.id == "output_body") {
+                        document.querySelector("#remove").setAttribute("disabled", "")
+                        document.querySelector("#add").removeAttribute("disabled")
+                    } else {
+                        document.querySelector("#add").setAttribute("disabled", "")
+                        document.querySelector("#remove").removeAttribute("disabled")
+                    }
+
+                })
+
+                var td = document.createElement("td")
+
+                td.innerHTML = data2['code']
+                tr.appendChild(td)
+                td = document.createElement("td")
+                td.innerHTML = data[i]["sec"]
+                tr.appendChild(td)
+                td = document.createElement("td")
+                td.innerHTML = data2['name']
+                tr.appendChild(td)
+                td = document.createElement("td")
+                td.innerHTML = data[i]["date"] + " " + data[i]["timeslot"]
+                tr.appendChild(td)
+                td = document.createElement("td")
+                td.innerHTML = data[i]["venue"]
+                tr.appendChild(td)
+                td = document.createElement("td")
+                td.innerHTML = data[i]["teacher"]
+                tr.appendChild(td)
+
+                document.querySelector("#output_body").appendChild(tr)
+            })
+        }
+        document.querySelector("#add").addEventListener('click', function(evt) {
+        	try {
+                if (document.querySelector(".sel").parentElement.id == "output_body") {
+                    var tr = document.querySelector(".sel")
+                    console.log(tr)
+                    var code = ""
+                    var sec = ""
+
+                    code = tr.firstChild.innerHTML
+                    console.log(code)
+                    tr.removeChild(tr.firstChild)
+                    sec = tr.firstChild.innerHTML
+
+
+
+                    $.ajax({
+                        url: "/api/schedclass/?code=" + code + "&sec=" + sec + "&id=" + id,
+                        type: 'PUT',
+                        success: function(data){
+                        	update_output_body(course,coursename)
+                    		update_sched_body()
+                        }
+                    })
+
+                    var e = document.querySelector("#course_select")
+                    var course = e.options[e.selectedIndex].text.split(" ")[0].replace(":", "")
+                    var coursename = e.options[e.selectedIndex].text.replace(course + ": ", "")
+                    try {
+                        var myNode = document.querySelector("#output_body");
+                        while (myNode.firstChild) {
+                            myNode.removeChild(myNode.firstChild);
+                        }
+                    } catch (error) {
+                        console.log(error)
+                    }
+            } }catch (error) {
+                console.log(error)
+            }
+        });
+        document.querySelector("#remove").addEventListener('click', function(evt) {
+            try {
+                if (document.querySelector(".sel").parentElement.id == "sched_body") {
+                    var tr = document.querySelector(".sel")
+                    console.log(tr)
+                    var code = ""
+                    var sec = ""
+
+                    code = tr.firstChild.innerHTML
+                    console.log(code)
+                    tr.removeChild(tr.firstChild)
+                    sec = tr.firstChild.innerHTML
+
+
+
+                    $.ajax({
+                        url: "/api/schedclass/?code=" + code + "&sec=" + sec + "&id=" + id + "&op=rmv",
+                        type: 'PUT',
+                        success: function(data){
+                        	update_output_body(course,coursename)
+                    		update_sched_body()
+                        }
+                    })
+
+                    var e = document.querySelector("#course_select")
+                    var course = e.options[e.selectedIndex].text.split(" ")[0].replace(":", "")
+                    var coursename = e.options[e.selectedIndex].text.replace(course + ": ", "")
+                    try {
+                        var myNode = document.querySelector("#output_body");
+                        while (myNode.firstChild) {
+                            myNode.removeChild(myNode.firstChild);
+                        }
+                    } catch (error) {
+                        console.log(error)
+                    }
+
+                    
+                }
+            } catch (error) {
+                console.log(error)
+            }
+        })
+
+        function update_sched_body() {
+            try {
+                var myNode = document.querySelector("#sched_body");
+                while (myNode.firstChild) {
+                    myNode.removeChild(myNode.firstChild);
+                }
+            } catch (error) {
+                console.log(error)
+            }
+             try {
+                var myNode = document.querySelector("#sched_body");
+                while (myNode.firstChild) {
+                    myNode.removeChild(myNode.firstChild);
+                }
+            } catch (error) {
+                console.log(error)
+            }
+            $.get('/api/sched/' + id, function(data) {
+                for (i = 0; i < data['sections'].length; i++) {
+
+                    $.get('/api/section/' + data['sections'][i], function(data2) {
+
+                        do_all2(data2)
+
+                        function do_all2(data2) {
+                            $.get("/api/course/" + data2['course'] + "/", function(data3) {
+                                var tr = document.createElement("tr")
+                                tr.addEventListener('click', function(evt) {
+                                    try {
+                                        document.querySelector(".sel").classList.remove("sel")
+                                    } catch (error) {
+                                        console.log(error)
+                                    }
+                                    evt.target.parentElement.classList.add("sel")
+                                    if (evt.target.parentElement.parentElement.id == "output_body") {
+                                        document.querySelector("#remove").setAttribute("disabled", "")
+                                        document.querySelector("#add").removeAttribute("disabled")
+                                    } else {
+                                        document.querySelector("#add").setAttribute("disabled", "")
+                                        document.querySelector("#remove").removeAttribute("disabled")
+                                    }
+                                })
+
+                                var td = document.createElement("td")
+
+                                td.innerHTML = data3['code']
+                                tr.appendChild(td)
+                                td = document.createElement("td")
+                                td.innerHTML = data2["sec"]
+                                tr.appendChild(td)
+                                td = document.createElement("td")
+                                td.innerHTML = data3['name']
+                                tr.appendChild(td)
+                                td = document.createElement("td")
+                                td.innerHTML = data2["date"] + " " + data2["timeslot"]
+                                tr.appendChild(td)
+                                td = document.createElement("td")
+                                td.innerHTML = data2["venue"]
+                                tr.appendChild(td)
+                                td = document.createElement("td")
+                                td.innerHTML = data2["teacher"]
+                                tr.appendChild(td)
+
+                                document.querySelector("#sched_body").appendChild(tr)
+                            })
+
+                        }
+
+                    })
+                }
+
+            })
+        }
+    </script>
+</body>
+
+</html>
